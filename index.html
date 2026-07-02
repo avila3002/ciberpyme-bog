@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CiberPYME BOG — Autodiagnóstico de ciberseguridad para MIPYMES</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --canvas:#EAEEF6; --surface:#FFFFFF; --surface-2:#F4F7FC;
+  --ink:#0E1B30; --ink-soft:#56657E; --ink-faint:#8C99AD;
+  --line:#DBE2EE; --line-soft:#EAEFF7;
+  --shield:#16315E; --shield-2:#23509B; --shield-3:#3E73C9;
+  --teal:#0E9E94; --teal-deep:#0A7A72; --teal-soft:#E4F5F3;
+  --m1:#D94E36; --m2:#E68A37; --m3:#DDB52E; --m4:#54A267; --m5:#1C886B;
+  --warn:#E68A37; --warn-soft:#FBEFDD; --danger:#D94E36; --danger-soft:#FBE6E1; --ok:#1C886B; --ok-soft:#E1F2EC;
+  --shadow-sm:0 1px 2px rgba(16,27,48,.06),0 1px 3px rgba(16,27,48,.04);
+  --shadow-md:0 4px 16px rgba(16,27,48,.08),0 2px 6px rgba(16,27,48,.05);
+  --shadow-lg:0 18px 48px rgba(16,27,48,.16);
+  --r-sm:9px; --r:14px; --r-lg:22px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--canvas);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100vh}
+h1,h2,h3,h4{font-family:'Sora',sans-serif;line-height:1.18;letter-spacing:-.01em}
+.mono{font-family:'IBM Plex Mono',monospace;font-feature-settings:"tnum"}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+.hidden{display:none!important}
+
+/* ---------- BUTTONS ---------- */
+.btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14.5px;padding:11px 20px;border-radius:var(--r-sm);transition:transform .12s,box-shadow .15s,background .15s;border:1px solid transparent}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--teal);color:#fff;box-shadow:0 2px 8px rgba(14,158,148,.35)}
+.btn-primary:hover{background:var(--teal-deep)}
+.btn-shield{background:var(--shield);color:#fff}
+.btn-shield:hover{background:var(--shield-2)}
+.btn-ghost{background:var(--surface);color:var(--shield-2);border:1px solid var(--line)}
+.btn-ghost:hover{background:var(--surface-2);border-color:var(--shield-3)}
+.btn-lg{padding:14px 26px;font-size:15.5px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* ---------- TOP NAV ---------- */
+#nav{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);height:64px;display:flex;align-items:center;padding:0 24px;gap:18px}
+.brand{display:flex;align-items:center;gap:11px;font-family:'Sora';font-weight:700;font-size:18px;color:var(--ink);white-space:nowrap}
+.brand .bog{color:var(--teal);font-weight:800}
+.nav-links{display:flex;gap:3px;margin-left:14px;flex:1;overflow-x:auto}
+.nav-links button{font-size:14px;font-weight:500;color:var(--ink-soft);padding:8px 14px;border-radius:8px;white-space:nowrap;transition:.15s;position:relative}
+.nav-links button:hover:not([disabled]){background:var(--surface-2);color:var(--ink)}
+.nav-links button.active{color:var(--shield-2);background:var(--surface-2);font-weight:600}
+.nav-links button[disabled]{opacity:.4;cursor:not-allowed}
+.user-chip{display:flex;align-items:center;gap:10px;padding:5px 6px 5px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:40px;font-size:13px}
+.user-chip .av{width:30px;height:30px;border-radius:50%;background:var(--shield);color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;font-family:'Sora'}
+.user-chip .who{display:flex;flex-direction:column;line-height:1.15}
+.user-chip .who b{font-size:13px;font-weight:600}
+.user-chip .who span{font-size:11px;color:var(--ink-faint)}
+
+/* ---------- LAYOUT ---------- */
+.wrap{max-width:1120px;margin:0 auto;padding:34px 24px 80px}
+.page-head{margin-bottom:26px}
+.eyebrow{font-family:'IBM Plex Mono';font-size:12px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--teal-deep);margin-bottom:10px}
+.page-head h1{font-size:30px;font-weight:700;margin-bottom:8px}
+.page-head p{color:var(--ink-soft);max-width:660px;font-size:15px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm)}
+.grid{display:grid;gap:18px}
+
+/* ---------- AUTH ---------- */
+#view-auth{min-height:calc(100vh - 64px);display:grid;grid-template-columns:1.05fr .95fr}
+.auth-hero{background:linear-gradient(155deg,#11264a 0%,#16315E 45%,#1c3f78 100%);color:#fff;padding:64px 56px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden}
+.auth-hero .mesh{position:absolute;inset:0;opacity:.5;background:
+  radial-gradient(420px 300px at 85% 12%,rgba(14,158,148,.32),transparent 70%),
+  radial-gradient(360px 320px at 8% 92%,rgba(62,115,201,.4),transparent 70%)}
+.hexfield{position:absolute;inset:0;opacity:.12;background-image:url("data:image/svg+xml,%3Csvg width='56' height='100' viewBox='0 0 56 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1.2'%3E%3Cpath d='M28 0l24 14v28L28 56 4 42V14z'/%3E%3Cpath d='M28 50l24 14v28L28 106 4 92V64z'/%3E%3C/g%3E%3C/svg%3E")}
+.auth-hero>*{position:relative;z-index:2}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);padding:7px 14px;border-radius:30px;font-size:12.5px;font-weight:600;width:fit-content;margin-bottom:26px;font-family:'IBM Plex Mono';letter-spacing:.04em}
+.hero-badge .dot{width:7px;height:7px;border-radius:50%;background:#3be3ce;box-shadow:0 0 0 4px rgba(59,227,206,.25)}
+.auth-hero h1{font-size:42px;font-weight:800;line-height:1.08;margin-bottom:18px;letter-spacing:-.02em}
+.auth-hero h1 em{font-style:normal;color:#5fe6d3}
+.auth-hero p.lead{font-size:16.5px;color:#c5d3ea;max-width:440px;margin-bottom:34px}
+.hero-stats{display:flex;gap:30px;border-top:1px solid rgba(255,255,255,.16);padding-top:26px}
+.hero-stats .s b{font-family:'Sora';font-size:27px;font-weight:700;display:block}
+.hero-stats .s span{font-size:12.5px;color:#9fb2d0}
+.auth-panel{background:var(--surface);display:flex;align-items:center;justify-content:center;padding:48px 40px}
+.auth-card{width:100%;max-width:392px}
+.auth-card h2{font-size:24px;font-weight:700;margin-bottom:5px}
+.auth-card .sub{color:var(--ink-soft);font-size:14px;margin-bottom:26px}
+.field{margin-bottom:15px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.field input,.field select{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:var(--r-sm);font-size:14.5px;font-family:inherit;color:var(--ink);background:var(--surface);transition:.15s}
+.field input:focus,.field select:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft)}
+.field.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field.row>div{margin:0}
+.auth-foot{margin-top:18px;text-align:center;font-size:13px;color:var(--ink-soft)}
+.auth-foot a{color:var(--teal-deep);font-weight:600;text-decoration:none;cursor:pointer}
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--ink-faint);font-size:12px}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* ---------- DIAGNOSTIC ---------- */
+.progress-bar{height:8px;background:var(--line-soft);border-radius:20px;overflow:hidden;margin-bottom:6px}
+.progress-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--teal-deep));border-radius:20px;transition:width .4s cubic-bezier(.4,0,.2,1)}
+.progress-meta{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-soft);margin-bottom:24px;font-weight:500}
+.dom-block{padding:22px 24px;margin-bottom:16px}
+.dom-block.muted{opacity:.55}
+.dom-head{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.dom-tag{font-family:'IBM Plex Mono';font-weight:600;font-size:13px;color:#fff;width:42px;height:42px;border-radius:11px;display:grid;place-items:center;flex-shrink:0}
+.dom-head h3{font-size:17px;font-weight:600}
+.dom-head .dh-sub{font-size:13px;color:var(--ink-soft)}
+.q{padding:16px 0;border-top:1px solid var(--line-soft)}
+.q:first-of-type{border-top:none;padding-top:12px}
+.q .qtext{font-size:14.5px;font-weight:500;margin-bottom:11px;color:var(--ink)}
+.q .qtext b{color:var(--ink-faint);font-family:'IBM Plex Mono';font-size:12.5px;margin-right:8px;font-weight:600}
+.scale{display:flex;gap:7px;flex-wrap:wrap}
+.scale label{flex:1;min-width:96px;cursor:pointer}
+.scale input{position:absolute;opacity:0;pointer-events:none}
+.scale .opt{border:1px solid var(--line);border-radius:9px;padding:9px 8px;text-align:center;transition:.13s;background:var(--surface)}
+.scale .opt b{display:block;font-family:'Sora';font-weight:700;font-size:15px;color:var(--ink)}
+.scale .opt span{font-size:10.5px;color:var(--ink-faint);line-height:1.2;display:block;margin-top:2px}
+.scale label:hover .opt{border-color:var(--shield-3);background:var(--surface-2)}
+.scale input:checked+.opt{border-color:var(--teal);background:var(--teal-soft);box-shadow:0 0 0 2px var(--teal-soft)}
+.scale input:checked+.opt b{color:var(--teal-deep)}
+.diag-actions{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:14px;flex-wrap:wrap}
+
+/* ---------- RESULTS ---------- */
+.res-top{display:grid;grid-template-columns:300px 1fr;gap:18px;margin-bottom:18px}
+.gauge-card{padding:26px;text-align:center;display:flex;flex-direction:column;align-items:center}
+.gauge-card .lvl-badge{margin-top:6px;font-family:'Sora';font-weight:700;font-size:18px;padding:6px 18px;border-radius:30px;color:#fff}
+.gauge-card .lvl-cap{font-size:13px;color:var(--ink-soft);margin-top:12px;max-width:230px}
+.radar-card{padding:24px}
+.radar-card h3{font-size:16px;font-weight:600;margin-bottom:2px}
+.radar-card .csub{font-size:13px;color:var(--ink-soft);margin-bottom:8px}
+.radar-wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap;justify-content:center}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-soft);margin-top:6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.dom-bars{padding:24px;margin-bottom:18px}
+.dom-bars h3{font-size:16px;font-weight:600;margin-bottom:18px}
+.barrow{display:grid;grid-template-columns:170px 1fr 52px;align-items:center;gap:14px;margin-bottom:13px}
+.barrow .bl{font-size:13.5px;font-weight:500}
+.barrow .bl .tag{font-family:'IBM Plex Mono';font-size:11px;color:var(--ink-faint);margin-right:7px}
+.bartrack{height:13px;background:var(--line-soft);border-radius:10px;overflow:hidden;position:relative}
+.bartrack i{display:block;height:100%;border-radius:10px;transition:width .7s cubic-bezier(.4,0,.2,1)}
+.bartrack .bench{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink-soft);opacity:.55}
+.barrow .bv{font-family:'IBM Plex Mono';font-weight:600;font-size:14px;text-align:right}
+.res-bottom{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.compliance{padding:24px}
+.compliance h3{font-size:16px;font-weight:600;margin-bottom:4px}
+.comp-row{display:flex;align-items:center;gap:13px;padding:13px 0;border-top:1px solid var(--line-soft)}
+.comp-row:first-of-type{border-top:none}
+.sem{width:13px;height:13px;border-radius:50%;flex-shrink:0}
+.comp-row .ct{flex:1}
+.comp-row .ct b{font-size:14px;font-weight:600;display:block}
+.comp-row .ct span{font-size:12.5px;color:var(--ink-soft)}
+.comp-row .cp{font-family:'IBM Plex Mono';font-weight:600;font-size:14px}
+.bench-card{padding:24px}
+.bench-card h3{font-size:16px;font-weight:600;margin-bottom:14px}
+.vs{display:flex;align-items:flex-end;justify-content:center;gap:40px;height:190px;padding-top:10px}
+.vs .col{display:flex;flex-direction:column;align-items:center;gap:10px;width:90px}
+.vs .colbar{width:64px;border-radius:9px 9px 0 0;display:flex;align-items:flex-start;justify-content:center;color:#fff;font-family:'IBM Plex Mono';font-weight:600;font-size:15px;padding-top:8px;transition:height .8s cubic-bezier(.4,0,.2,1)}
+.vs .col .clbl{font-size:12.5px;color:var(--ink-soft);text-align:center;font-weight:500}
+
+/* ---------- RECOMMENDATIONS ---------- */
+.ai-banner{display:flex;gap:16px;align-items:flex-start;padding:20px 22px;margin-bottom:22px;background:linear-gradient(120deg,#13284c,#1c3f78);border-radius:var(--r);color:#fff;position:relative;overflow:hidden}
+.ai-banner .spark{width:46px;height:46px;border-radius:12px;background:rgba(95,230,211,.16);border:1px solid rgba(95,230,211,.35);display:grid;place-items:center;flex-shrink:0}
+.ai-banner h3{font-size:17px;font-weight:700;margin-bottom:3px}
+.ai-banner p{font-size:13.5px;color:#c5d3ea}
+.ai-banner .tag{margin-left:auto;font-family:'IBM Plex Mono';font-size:11px;background:rgba(255,255,255,.12);padding:5px 11px;border-radius:20px;white-space:nowrap;align-self:center}
+.rec{padding:20px 22px;margin-bottom:15px;border-left:4px solid var(--line)}
+.rec.p-crit{border-left-color:var(--danger)}
+.rec.p-high{border-left-color:var(--warn)}
+.rec.p-med{border-left-color:var(--shield-3)}
+.rec-head{display:flex;align-items:center;gap:12px;margin-bottom:11px;flex-wrap:wrap}
+.rec-head .rtag{font-family:'IBM Plex Mono';font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px}
+.p-crit .rtag{background:var(--danger-soft);color:var(--danger)}
+.p-high .rtag{background:var(--warn-soft);color:#b86a1f}
+.p-med .rtag{background:#E8EFFB;color:var(--shield-2)}
+.rec-head h3{font-size:16.5px;font-weight:600;flex:1}
+.rec-head .score{font-family:'IBM Plex Mono';font-size:13px;color:var(--ink-soft)}
+.rec p.rbody{font-size:14px;color:var(--ink-soft);margin-bottom:13px}
+.rec ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+.rec li{display:flex;gap:10px;font-size:13.5px;align-items:flex-start}
+.rec li .chk{color:var(--teal);flex-shrink:0;margin-top:2px}
+.rec li .ctrl{font-family:'IBM Plex Mono';font-size:10.5px;color:var(--ink-faint);background:var(--surface-2);padding:2px 7px;border-radius:5px;margin-left:auto;white-space:nowrap;align-self:center}
+
+/* ---------- TRAINING ---------- */
+.train-stat{display:flex;gap:16px;align-items:center;padding:18px 22px;margin-bottom:20px}
+.train-stat .ring{flex-shrink:0}
+.train-stat .ts-txt b{font-family:'Sora';font-size:20px;font-weight:700}
+.train-stat .ts-txt span{font-size:13.5px;color:var(--ink-soft);display:block}
+.caps{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+.cap{padding:20px;display:flex;flex-direction:column}
+.cap.done{background:var(--surface-2)}
+.cap-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.cap-ico{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;flex-shrink:0;color:#fff}
+.cap-min{margin-left:auto;font-family:'IBM Plex Mono';font-size:12px;color:var(--ink-faint)}
+.cap h3{font-size:15.5px;font-weight:600;margin-bottom:6px}
+.cap p{font-size:13px;color:var(--ink-soft);margin-bottom:16px;flex:1}
+.cap .btn{width:100%;justify-content:center}
+.cap .done-pill{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:11px;border-radius:var(--r-sm);background:var(--ok-soft);color:var(--ok);font-weight:600;font-size:14px}
+
+/* ---------- REPORT ---------- */
+.report-doc{padding:42px 46px;max-width:840px;margin:0 auto}
+.rd-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--shield);padding-bottom:20px;margin-bottom:26px}
+.rd-head .brand{font-size:21px}
+.rd-head .meta{text-align:right;font-size:12.5px;color:var(--ink-soft);font-family:'IBM Plex Mono'}
+.rd-section{margin-bottom:26px}
+.rd-section h3{font-size:15px;font-weight:700;color:var(--shield);margin-bottom:12px;font-family:'Sora';display:flex;align-items:center;gap:8px}
+.rd-section h3::before{content:"";width:4px;height:16px;background:var(--teal);border-radius:3px}
+.rd-kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 30px;font-size:14px}
+.rd-kv .k{color:var(--ink-soft)}.rd-kv .v{font-weight:600;text-align:right}
+.rd-table{width:100%;border-collapse:collapse;font-size:13px}
+.rd-table th{background:var(--shield);color:#fff;padding:9px 12px;text-align:left;font-weight:600;font-size:12px}
+.rd-table td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.rd-table tr:nth-child(even) td{background:var(--surface-2)}
+.report-actions{display:flex;gap:12px;justify-content:center;margin-top:28px}
+.note{font-size:12.5px;color:var(--ink-faint);background:var(--surface-2);border:1px dashed var(--line);border-radius:10px;padding:12px 16px;margin-top:18px;display:flex;gap:10px}
+
+footer.appfoot{text-align:center;padding:26px;font-size:12.5px;color:var(--ink-faint);border-top:1px solid var(--line)}
+
+@media (max-width:900px){
+  #view-auth{grid-template-columns:1fr}
+  .auth-hero{display:none}
+  .res-top{grid-template-columns:1fr}
+  .res-bottom{grid-template-columns:1fr}
+  .barrow{grid-template-columns:130px 1fr 46px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+@media print{
+  #nav,.report-actions,.note,footer.appfoot{display:none!important}
+  body{background:#fff}
+  .report-doc{box-shadow:none;border:none;padding:0;max-width:100%}
+  .card{box-shadow:none}
+}
+</style>
+</head>
+<body>
+
+<nav id="nav" class="hidden">
+  <div class="brand">
+    <svg width="26" height="29" viewBox="0 0 26 29" fill="none"><path d="M13 1L24 6v10c0 7-4.5 10.5-11 12.5C6.5 26.5 2 23 2 16V6z" fill="#16315E"/><path d="M13 1L24 6v10c0 7-4.5 10.5-11 12.5" stroke="#0E9E94" stroke-width="1.5" fill="none"/><path d="M8.5 14.5l3 3 6-6.5" stroke="#5fe6d3" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+    CiberPYME <span class="bog">BOG</span>
+  </div>
+  <div class="nav-links" id="navlinks"></div>
+  <div class="user-chip" id="userchip"></div>
+</nav>
+
+<!-- AUTH -->
+<section id="view-auth" class="view">
+  <div class="auth-hero">
+    <div class="mesh"></div><div class="hexfield"></div>
+    <span class="hero-badge"><span class="dot"></span> NIST CSF 2.0 · ISO/IEC 25010</span>
+    <h1>Conoce y reduce el <em>riesgo digital</em> de tu empresa.</h1>
+    <p class="lead">Autodiagnóstico de ciberseguridad, plan de acción con inteligencia artificial y capacitación, diseñado para las MIPYMES de Bogotá. Sin consultores costosos, en español y en minutos.</p>
+    <div class="hero-stats">
+      <div class="s"><b>+750.000</b><span>MIPYMES en Bogotá</span></div>
+      <div class="s"><b>72%</b><span>sin políticas de seguridad</span></div>
+      <div class="s"><b>6</b><span>dominios evaluados</span></div>
+    </div>
+  </div>
+  <div class="auth-panel">
+    <div class="auth-card">
+      <h2>Crea tu cuenta</h2>
+      <p class="sub">Empieza tu autodiagnóstico gratuito. Toma menos de 10 minutos.</p>
+      <div class="field"><label>Nombre de la empresa</label><input id="f-name" placeholder="Ej. Distribuidora La 80 S.A.S."></div>
+      <div class="field"><label>Correo corporativo</label><input id="f-email" type="email" placeholder="gerencia@miempresa.com"></div>
+      <div class="field row">
+        <div><label>Sector</label>
+          <select id="f-sector">
+            <option>Comercio al por menor</option>
+            <option>Servicios profesionales</option>
+            <option>Manufactura</option>
+            <option>Gastronomía</option>
+            <option>Tecnología / TIC</option>
+            <option>Otro</option>
+          </select>
+        </div>
+        <div><label>Empleados</label>
+          <select id="f-size">
+            <option>1 a 10</option>
+            <option selected>11 a 30</option>
+            <option>31 a 50</option>
+          </select>
+        </div>
+      </div>
+      <div class="field row">
+        <div><label>Localidad</label>
+          <select id="f-loc"><option>Chapinero</option><option>Usaquén</option><option>Suba</option><option>Engativá</option><option>Kennedy</option><option>Otra</option></select>
+        </div>
+        <div><label>Contraseña</label><input id="f-pass" type="password" placeholder="••••••••"></div>
+      </div>
+      <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center;margin-top:8px" onclick="App.register()">Crear cuenta y comenzar →</button>
+      <div class="divider">o</div>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="App.demoLogin()">Entrar con empresa de demostración</button>
+      <p class="auth-foot">Al continuar aceptas el tratamiento de datos conforme a la <a>Ley 1581 de 2012</a>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- DIAGNOSTIC -->
+<section id="view-diag" class="view hidden"><div class="wrap">
+  <div class="page-head">
+    <div class="eyebrow">Módulo de autodiagnóstico</div>
+    <h1>Evaluación de madurez en ciberseguridad</h1>
+    <p>Responde según la situación <b>real</b> de tu empresa. Cada pregunta está alineada con un dominio del marco NIST CSF 2.0. No hay respuestas correctas o incorrectas.</p>
+  </div>
+  <div class="card" style="padding:18px 22px;margin-bottom:22px">
+    <div class="progress-bar"><i id="prog" style="width:0%"></i></div>
+    <div class="progress-meta"><span id="prog-txt">0 de 16 preguntas respondidas</span><span id="prog-pct" class="mono">0%</span></div>
+    <button class="btn btn-ghost" style="font-size:13px;padding:8px 14px" onclick="App.fillExample()">⚡ Cargar respuestas de ejemplo (demo)</button>
+  </div>
+  <div id="diag-domains"></div>
+  <div class="diag-actions">
+    <span style="font-size:13px;color:var(--ink-soft)" id="diag-hint">Responde todas las preguntas para calcular tu nivel de madurez.</span>
+    <button class="btn btn-primary btn-lg" id="calc-btn" disabled onclick="App.calculate()">Calcular mi nivel de madurez →</button>
+  </div>
+</div></section>
+
+<!-- RESULTS -->
+<section id="view-res" class="view hidden"><div class="wrap">
+  <div class="page-head">
+    <div class="eyebrow">Resultados · Tablero ejecutivo</div>
+    <h1>Tu nivel de madurez digital</h1>
+    <p id="res-intro"></p>
+  </div>
+  <div class="res-top">
+    <div class="card gauge-card" id="gauge-card"></div>
+    <div class="card radar-card">
+      <h3>Madurez por dominio (NIST CSF 2.0)</h3>
+      <div class="csub">El polígono azul es tu empresa; la línea punteada es el promedio de tu sector.</div>
+      <div class="radar-wrap"><div id="radar"></div></div>
+      <div class="legend">
+        <span><i style="background:var(--shield-2)"></i>Tu empresa</span>
+        <span><i style="background:transparent;border:2px dashed var(--ink-soft)"></i>Promedio del sector</span>
+      </div>
+    </div>
+  </div>
+  <div class="card dom-bars" id="dom-bars"></div>
+  <div class="res-bottom">
+    <div class="card compliance" id="compliance"></div>
+    <div class="card bench-card" id="bench"></div>
+  </div>
+  <div style="text-align:center;margin-top:26px">
+    <button class="btn btn-shield btn-lg" onclick="App.go('rec')">Ver mi plan de acción con IA →</button>
+  </div>
+</div></section>
+
+<!-- RECOMMENDATIONS -->
+<section id="view-rec" class="view hidden"><div class="wrap">
+  <div class="page-head">
+    <div class="eyebrow">Motor de recomendaciones</div>
+    <h1>Tu plan de acción priorizado</h1>
+    <p>Generado a partir de tu diagnóstico, ordenado de lo más urgente a lo menos urgente, en lenguaje claro y adaptado a tu sector y tamaño.</p>
+  </div>
+  <div class="ai-banner">
+    <div class="spark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 6.3L21 11l-6.6 2.7L12 20l-2.4-6.3L3 11l6.6-2.7z" fill="#5fe6d3"/></svg></div>
+    <div><h3 id="ai-title">Plan generado por inteligencia artificial</h3><p id="ai-sub"></p></div>
+    <span class="tag">IA · es-CO</span>
+  </div>
+  <div id="rec-list"></div>
+  <div style="text-align:center;margin-top:22px">
+    <button class="btn btn-primary btn-lg" onclick="App.go('train')">Comenzar capacitación →</button>
+  </div>
+</div></section>
+
+<!-- TRAINING -->
+<section id="view-train" class="view hidden"><div class="wrap">
+  <div class="page-head">
+    <div class="eyebrow">Módulo de capacitación</div>
+    <h1>Microaprendizaje en ciberseguridad</h1>
+    <p>Cápsulas cortas de 4 a 7 minutos. Completa las recomendadas según las brechas detectadas en tu diagnóstico.</p>
+  </div>
+  <div class="card train-stat" id="train-stat"></div>
+  <div class="caps" id="caps"></div>
+</div></section>
+
+<!-- REPORT -->
+<section id="view-report" class="view hidden"><div class="wrap">
+  <div class="card report-doc" id="report-doc"></div>
+  <div class="report-actions">
+    <button class="btn btn-shield btn-lg" onclick="window.print()">⬇ Descargar / Imprimir informe (PDF)</button>
+    <button class="btn btn-ghost btn-lg" onclick="App.go('res')">Volver al tablero</button>
+  </div>
+  <div class="note">ℹ️ <span>En la versión de producción este informe se firma digitalmente y se acompaña de un <b>certificado de participación</b> al completar el plan de acción inicial. La generación del PDF usa la API REST documentada en Swagger.</span></div>
+</div></section>
+
+<footer class="appfoot">CiberPYME BOG · Prototipo funcional (ACA 3) · Ingeniería de Sistemas — CUN · 2026</footer>
+
+<script>
+/* ============================== DATA ============================== */
+const DOMAINS=[
+ {id:'GV',name:'Gobernar',full:'Gobierno y estrategia',weight:.15,color:'#7C4DBA'},
+ {id:'ID',name:'Identificar',full:'Gestión de activos y riesgos',weight:.20,color:'#2475B8'},
+ {id:'PR',name:'Proteger',full:'Controles de protección',weight:.25,color:'#0E9E94'},
+ {id:'DE',name:'Detectar',full:'Detección de amenazas',weight:.15,color:'#E68A37'},
+ {id:'RS',name:'Responder',full:'Respuesta ante incidentes',weight:.15,color:'#D94E36'},
+ {id:'RC',name:'Recuperar',full:'Recuperación y continuidad',weight:.10,color:'#54A267'},
+];
+const QUESTIONS=[
+ {id:'B1',dom:'GV',text:'¿Su empresa cuenta con una política formal de ciberseguridad aprobada por la dirección?'},
+ {id:'B2',dom:'GV',text:'¿Existe un responsable designado para la gestión de la seguridad informática?'},
+ {id:'B3',dom:'GV',text:'¿La ciberseguridad está incluida en el plan estratégico o presupuesto anual?'},
+ {id:'B4',dom:'ID',text:'¿La empresa tiene inventariados todos sus activos tecnológicos (equipos, software, datos)?'},
+ {id:'B5',dom:'ID',text:'¿Se realiza una evaluación periódica de los riesgos tecnológicos?'},
+ {id:'B6',dom:'ID',text:'¿La empresa identifica y clasifica la información sensible o confidencial que maneja?'},
+ {id:'B7',dom:'PR',text:'¿Los equipos y sistemas usan contraseñas seguras y se cambian periódicamente?'},
+ {id:'B8',dom:'PR',text:'¿Se realizan copias de respaldo de la información crítica con regularidad?'},
+ {id:'B9',dom:'PR',text:'¿El software y los sistemas operativos se mantienen actualizados?'},
+ {id:'B10',dom:'PR',text:'¿Los empleados reciben capacitación en ciberseguridad y buenas prácticas?'},
+ {id:'B11',dom:'DE',text:'¿Cuenta con herramientas para detectar accesos no autorizados o comportamientos sospechosos?'},
+ {id:'B12',dom:'DE',text:'¿Se revisan periódicamente los registros de acceso y actividad en los sistemas?'},
+ {id:'B13',dom:'RS',text:'¿Existe un procedimiento documentado para responder ante un incidente de seguridad?'},
+ {id:'B14',dom:'RS',text:'¿El personal sabe qué hacer ante un ataque de ransomware o pérdida de datos?'},
+ {id:'B15',dom:'RC',text:'¿La empresa tiene un plan de continuidad de negocio o recuperación ante desastres?'},
+ {id:'B16',dom:'RC',text:'¿Las copias de respaldo han sido probadas para verificar que se pueden restaurar?'},
+];
+const SCALE=[{v:1,t:'No implementado'},{v:2,t:'Parcial / informal'},{v:3,t:'Definido'},{v:4,t:'Gestionado'},{v:5,t:'Optimizado'}];
+const LEVELS=[
+ {min:0,max:20,name:'Inicial',color:'#D94E36',cap:'Existe una exposición crítica al riesgo. Es prioritario establecer controles básicos cuanto antes.'},
+ {min:21,max:40,name:'Básico',color:'#E68A37',cap:'Hay controles iniciales pero dispersos e informales. Falta documentación y consistencia.'},
+ {min:41,max:60,name:'Intermedio',color:'#DDB52E',cap:'Buena base de seguridad. El reto ahora es formalizar procesos y medir su efectividad.'},
+ {min:61,max:80,name:'Avanzado',color:'#54A267',cap:'Madurez sólida. Los procesos se cumplen de forma sistemática y se gestionan.'},
+ {min:81,max:100,name:'Óptimo',color:'#1C886B',cap:'Madurez de referencia. La seguridad está integrada a la estrategia y se mejora de forma continua.'},
+];
+const SECTOR_BENCH={'Comercio al por menor':36,'Servicios profesionales':45,'Manufactura':33,'Gastronomía':30,'Tecnología / TIC':58,'Otro':38};
+const RECS={
+ B1:{t:'Política de seguridad',a:'Redacte una política de ciberseguridad de una página, apruébela con la gerencia y comuníquela a todo el personal.',ctrl:'NIST GV.PO · CIS 14'},
+ B2:{t:'Responsable de seguridad',a:'Designe formalmente a un responsable (interno o externo) de la seguridad informática, aunque sea a tiempo parcial.',ctrl:'NIST GV.RR'},
+ B3:{t:'Presupuesto y estrategia',a:'Asigne una partida anual para ciberseguridad y defina dos o tres objetivos medibles para el año.',ctrl:'NIST GV.OC'},
+ B4:{t:'Inventario de activos',a:'Cree un inventario simple en hoja de cálculo de equipos, software y datos críticos; actualícelo cada trimestre.',ctrl:'NIST ID.AM · CIS 1-2'},
+ B5:{t:'Evaluación de riesgos',a:'Realice una evaluación de riesgos anual identificando las cinco amenazas más probables y su impacto.',ctrl:'NIST ID.RA'},
+ B6:{t:'Clasificación de la información',a:'Clasifique su información en pública, interna y confidencial, y aplique controles según su sensibilidad.',ctrl:'NIST ID.AM-07 · Ley 1581'},
+ B7:{t:'Contraseñas y doble factor',a:'Adopte un gestor de contraseñas y active la verificación en dos pasos (MFA) en el correo y los sistemas clave.',ctrl:'NIST PR.AA · CIS 5-6'},
+ B8:{t:'Copias de respaldo',a:'Configure copias de respaldo automáticas siguiendo la regla 3-2-1: tres copias, dos medios y una fuera del sitio.',ctrl:'NIST PR.DS · CIS 11'},
+ B9:{t:'Actualizaciones de software',a:'Active las actualizaciones automáticas del sistema operativo y las aplicaciones; retire el software sin soporte.',ctrl:'NIST PR.PS · CIS 7'},
+ B10:{t:'Capacitación del personal',a:'Implemente capacitación periódica (use el módulo de la plataforma) y simulacros de phishing trimestrales.',ctrl:'NIST PR.AT · CIS 14'},
+ B11:{t:'Detección de amenazas',a:'Instale antivirus o EDR en todos los equipos y active alertas de inicio de sesión sospechoso.',ctrl:'NIST DE.CM · CIS 13'},
+ B12:{t:'Revisión de registros',a:'Revise mensualmente los registros de acceso de sus sistemas y del correo en busca de anomalías.',ctrl:'NIST DE.CM-09'},
+ B13:{t:'Plan de respuesta a incidentes',a:'Documente un procedimiento básico: a quién avisar, cómo aislar el equipo afectado y cómo reportar a COLCERT.',ctrl:'NIST RS.MA · CIS 17'},
+ B14:{t:'Preparación ante ransomware',a:'Capacite al personal sobre cómo actuar ante un ataque: desconectar el equipo, no pagar y reportar de inmediato.',ctrl:'NIST RS.CO'},
+ B15:{t:'Continuidad del negocio',a:'Elabore un plan de continuidad mínimo: procesos críticos, tiempos de recuperación y responsables.',ctrl:'NIST RC.RP · CIS 11'},
+ B16:{t:'Pruebas de restauración',a:'Pruebe la restauración de sus copias de respaldo al menos cada semestre para garantizar que funcionan.',ctrl:'NIST RC.RP-05'},
+};
+const CAPSULES=[
+ {id:'c1',dom:'PR',title:'Contraseñas seguras y MFA',min:5,desc:'Cómo crear contraseñas fuertes y activar la verificación en dos pasos en minutos.'},
+ {id:'c2',dom:'PR',title:'Detecta y evita el phishing',min:6,desc:'Aprende a identificar correos fraudulentos, enlaces y archivos maliciosos.'},
+ {id:'c3',dom:'PR',title:'Copias de respaldo 3-2-1',min:5,desc:'La regla práctica para no volver a perder tu información nunca.'},
+ {id:'c4',dom:'GV',title:'Tu política de seguridad en 1 página',min:4,desc:'Lo mínimo indispensable que tu empresa debe documentar y aprobar.'},
+ {id:'c5',dom:'RS',title:'Qué hacer ante un ransomware',min:7,desc:'Pasos inmediatos para contener un ataque y reducir su impacto.'},
+ {id:'c6',dom:'ID',title:'Protección de datos y Ley 1581',min:6,desc:'Cumple la ley colombiana de datos personales sin contratar abogados.'},
+];
+const VIEWS=[
+ {id:'diag',label:'Diagnóstico',gate:false},
+ {id:'res',label:'Resultados',gate:true},
+ {id:'rec',label:'Recomendaciones',gate:true},
+ {id:'train',label:'Capacitación',gate:true},
+ {id:'report',label:'Reporte',gate:true},
+];
+
+/* ============================== STATE ============================== */
+const App={
+ user:null,answers:{},result:null,done:new Set(),
+ levelFor(s){return LEVELS.find(l=>s>=l.min&&s<=l.max)||LEVELS[0]},
+ domScore(dom){const qs=QUESTIONS.filter(q=>q.dom===dom);const vals=qs.map(q=>this.answers[q.id]).filter(Boolean);if(!vals.length)return 0;const avg=vals.reduce((a,b)=>a+b,0)/vals.length;return Math.round((avg-1)/4*100);},
+
+ /* -------- AUTH -------- */
+ register(){
+   const name=document.getElementById('f-name').value.trim();
+   const email=document.getElementById('f-email').value.trim();
+   if(!name){alert('Ingresa el nombre de tu empresa para continuar.');return;}
+   this.user={name,email:email||'demo@ciberpyme.co',sector:document.getElementById('f-sector').value,size:document.getElementById('f-size').value,loc:document.getElementById('f-loc').value};
+   this.start();
+ },
+ demoLogin(){
+   this.user={name:'Distribuidora La 80 S.A.S.',email:'gerencia@la80.co',sector:'Comercio al por menor',size:'11 a 30',loc:'Engativá'};
+   this.start();
+ },
+ start(){document.getElementById('view-auth').classList.add('hidden');document.getElementById('nav').classList.remove('hidden');this.buildNav();this.renderDiag();this.go('diag');},
+
+ buildNav(){
+   const u=this.user;const ini=u.name.split(' ').filter(w=>w.length>2).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'PY';
+   document.getElementById('userchip').innerHTML=`<div class="who"><b>${u.name.length>22?u.name.slice(0,22)+'…':u.name}</b><span>${u.sector}</span></div><div class="av">${ini}</div>`;
+   const nl=document.getElementById('navlinks');nl.innerHTML='';
+   VIEWS.forEach(v=>{const b=document.createElement('button');b.textContent=v.label;b.id='nav-'+v.id;b.onclick=()=>this.go(v.id);if(v.gate&&!this.result)b.disabled=true;nl.appendChild(b);});
+ },
+ go(id){
+   document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
+   document.getElementById('view-'+id).classList.remove('hidden');
+   document.querySelectorAll('#navlinks button').forEach(b=>b.classList.remove('active'));
+   const nb=document.getElementById('nav-'+id);if(nb)nb.classList.add('active');
+   window.scrollTo({top:0,behavior:'auto'});
+   if(id==='res')this.renderResults();if(id==='rec')this.renderRec();if(id==='train')this.renderTrain();if(id==='report')this.renderReport();
+ },
+
+ /* -------- DIAGNOSTIC -------- */
+ renderDiag(){
+   const wrap=document.getElementById('diag-domains');wrap.innerHTML='';
+   DOMAINS.forEach((d,di)=>{
+     const qs=QUESTIONS.filter(q=>q.dom===d.id);
+     const block=document.createElement('div');block.className='card dom-block';
+     let h=`<div class="dom-head"><div class="dom-tag" style="background:${d.color}">${d.id}</div><div><h3>${di+1}. ${d.name}</h3><div class="dh-sub">${d.full} · ${qs.length} preguntas</div></div></div>`;
+     qs.forEach(q=>{
+       h+=`<div class="q"><div class="qtext"><b>${q.id}</b>${q.text}</div><div class="scale">`;
+       SCALE.forEach(s=>{h+=`<label><input type="radio" name="${q.id}" value="${s.v}" onchange="App.answer('${q.id}',${s.v})"><div class="opt"><b>${s.v}</b><span>${s.t}</span></div></label>`;});
+       h+=`</div></div>`;
+     });
+     block.innerHTML=h;wrap.appendChild(block);
+   });
+   this.updateProgress();
+ },
+ answer(id,v){this.answers[id]=v;this.updateProgress();},
+ updateProgress(){
+   const n=Object.keys(this.answers).length,total=QUESTIONS.length,pct=Math.round(n/total*100);
+   document.getElementById('prog').style.width=pct+'%';
+   document.getElementById('prog-txt').textContent=`${n} de ${total} preguntas respondidas`;
+   document.getElementById('prog-pct').textContent=pct+'%';
+   const ready=n===total;
+   document.getElementById('calc-btn').disabled=!ready;
+   document.getElementById('diag-hint').textContent=ready?'¡Listo! Ya puedes calcular tu nivel de madurez.':`Te faltan ${total-n} preguntas por responder.`;
+ },
+ fillExample(){
+   const sample={B1:2,B2:2,B3:1,B4:3,B5:2,B6:2,B7:3,B8:2,B9:4,B10:1,B11:3,B12:2,B13:1,B14:2,B15:1,B16:2};
+   this.answers={...sample};
+   Object.entries(sample).forEach(([k,v])=>{const el=document.querySelector(`input[name="${k}"][value="${v}"]`);if(el)el.checked=true;});
+   this.updateProgress();
+   window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+ },
+ calculate(){
+   const domScores={};DOMAINS.forEach(d=>domScores[d.id]=this.domScore(d.id));
+   const global=Math.round(DOMAINS.reduce((a,d)=>a+domScores[d.id]*d.weight,0));
+   const compliance=this.calcCompliance();
+   this.result={domScores,global,level:this.levelFor(global),compliance,date:new Date()};
+   document.querySelectorAll('#navlinks button').forEach(b=>b.disabled=false);
+   this.go('res');
+ },
+ calcCompliance(){
+   const sc=id=>((this.answers[id]||1)-1)/4*100;
+   const ley1581=Math.round((sc('B6')+sc('B7')+sc('B8')+sc('B1'))/4);
+   const ley1273=Math.round((sc('B11')+sc('B13')+sc('B12'))/3);
+   const sem=p=>p<40?'#D94E36':p<70?'#E68A37':'#1C886B';
+   const lab=p=>p<40?'Incumplimiento':p<70?'Cumplimiento parcial':'Cumplimiento adecuado';
+   return [
+     {name:'Ley 1581 de 2012 · Protección de Datos',pct:ley1581,color:sem(ley1581),label:lab(ley1581)},
+     {name:'Ley 1273 de 2009 · Delitos Informáticos',pct:ley1273,color:sem(ley1273),label:lab(ley1273)},
+   ];
+ },
+
+ /* -------- RESULTS -------- */
+ renderResults(){
+   const r=this.result;if(!r)return;
+   document.getElementById('res-intro').innerHTML=`Para <b>${this.user.name}</b> (${this.user.sector}, ${this.user.size} empleados). Tu puntaje global de madurez es de <b>${r.global}/100</b>.`;
+   // gauge
+   document.getElementById('gauge-card').innerHTML=this.gaugeSVG(r.global,r.level)+
+     `<div class="lvl-badge" style="background:${r.level.color}">${r.level.name}</div><div class="lvl-cap">${r.level.cap}</div>`;
+   // radar
+   document.getElementById('radar').innerHTML=this.radarSVG(r.domScores);
+   // bars
+   const bench=SECTOR_BENCH[this.user.sector]||38;
+   let bh='<h3>Detalle por dominio y comparación con tu sector</h3>';
+   DOMAINS.forEach(d=>{
+     const s=r.domScores[d.id];
+     bh+=`<div class="barrow"><div class="bl"><span class="tag">${d.id}</span>${d.name}</div><div class="bartrack"><i style="width:${s}%;background:${d.color}"></i><div class="bench" style="left:${bench}%" title="Promedio sector"></div></div><div class="bv" style="color:${d.color}">${s}</div></div>`;
+   });
+   bh+=`<div style="font-size:12px;color:var(--ink-faint);margin-top:6px">La línea vertical marca el promedio del sector «${this.user.sector}» (${bench}/100).</div>`;
+   document.getElementById('dom-bars').innerHTML=bh;
+   // compliance
+   let ch='<h3>Cumplimiento normativo</h3><div style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Estado estimado frente a la normativa colombiana aplicable.</div>';
+   r.compliance.forEach(c=>{ch+=`<div class="comp-row"><span class="sem" style="background:${c.color}"></span><div class="ct"><b>${c.name}</b><span>${c.label}</span></div><div class="cp" style="color:${c.color}">${c.pct}%</div></div>`;});
+   document.getElementById('compliance').innerHTML=ch;
+   // bench big
+   const yours=r.global;const ymax=Math.max(yours,bench,100);
+   document.getElementById('bench').innerHTML=`<h3>Tú frente a tu sector</h3><div class="vs">
+     <div class="col"><div class="colbar" style="height:${yours/100*150}px;background:${r.level.color}">${yours}</div><div class="clbl">Tu empresa</div></div>
+     <div class="col"><div class="colbar" style="height:${bench/100*150}px;background:#9aa8bf">${bench}</div><div class="clbl">Promedio<br>del sector</div></div>
+   </div><div style="text-align:center;font-size:13px;color:var(--ink-soft);margin-top:10px">${yours>=bench?`Estás <b style="color:var(--ok)">${yours-bench} puntos por encima</b> del promedio.`:`Estás <b style="color:var(--danger)">${bench-yours} puntos por debajo</b> del promedio. Tu plan de acción ayudará a cerrar esa brecha.`}</div>`;
+ },
+ gaugeSVG(val,level){
+   const R=78,cx=95,cy=95,C=2*Math.PI*R,off=C-(val/100)*C;
+   return `<svg width="190" height="190" viewBox="0 0 190 190">
+     <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#EAEFF7" stroke-width="15"/>
+     <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${level.color}" stroke-width="15" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}" transform="rotate(-90 ${cx} ${cy})" style="transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1)"/>
+     <text x="${cx}" y="${cy-4}" text-anchor="middle" font-family="Sora" font-weight="800" font-size="46" fill="#0E1B30">${val}</text>
+     <text x="${cx}" y="${cy+20}" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#8C99AD">/ 100</text>
+   </svg>`;
+ },
+ radarSVG(scores){
+   const cx=160,cy=155,R=118,n=DOMAINS.length;
+   const pt=(i,r)=>{const a=-Math.PI/2+i*2*Math.PI/n;return[cx+r*Math.cos(a),cy+r*Math.sin(a)];};
+   let g='';
+   [0.33,0.66,1].forEach(ring=>{let p=DOMAINS.map((d,i)=>pt(i,R*ring).join(',')).join(' ');g+=`<polygon points="${p}" fill="none" stroke="#DBE2EE" stroke-width="1"/>`;});
+   DOMAINS.forEach((d,i)=>{const[x,y]=pt(i,R);g+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#EAEFF7" stroke-width="1"/>`;});
+   const bench=SECTOR_BENCH[this.user.sector]||38;
+   let bp=DOMAINS.map((d,i)=>pt(i,R*bench/100).join(',')).join(' ');
+   g+=`<polygon points="${bp}" fill="none" stroke="#56657E" stroke-width="1.5" stroke-dasharray="5 4" opacity=".8"/>`;
+   let yp=DOMAINS.map((d,i)=>pt(i,R*scores[d.id]/100).join(',')).join(' ');
+   g+=`<polygon points="${yp}" fill="rgba(35,80,155,.18)" stroke="#23509B" stroke-width="2.5" style="transition:all .8s"/>`;
+   DOMAINS.forEach((d,i)=>{const[x,y]=pt(i,R*scores[d.id]/100);g+=`<circle cx="${x}" cy="${y}" r="4" fill="${d.color}" stroke="#fff" stroke-width="1.5"/>`;});
+   DOMAINS.forEach((d,i)=>{const[x,y]=pt(i,R+22);g+=`<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-family="IBM Plex Mono" font-weight="600" font-size="12" fill="${d.color}">${d.id}</text>`;});
+   return `<svg width="320" height="320" viewBox="0 0 320 320">${g}</svg>`;
+ },
+
+ /* -------- RECOMMENDATIONS -------- */
+ renderRec(){
+   const r=this.result;if(!r)return;
+   document.getElementById('ai-title').textContent=`Plan de acción para ${this.user.name}`;
+   const sorted=[...QUESTIONS].sort((a,b)=>(this.answers[a.id]||0)-(this.answers[b.id]||0));
+   const gaps=sorted.filter(q=>(this.answers[q.id]||5)<=3);
+   document.getElementById('ai-sub').textContent=`Detectamos ${gaps.length} oportunidades de mejora. Aborda primero las marcadas como críticas: tienen el mayor impacto en la reducción de tu riesgo.`;
+   const list=document.getElementById('rec-list');list.innerHTML='';
+   const top=gaps.slice(0,7);
+   top.forEach((q,i)=>{
+     const rec=RECS[q.id];const v=this.answers[q.id]||1;const dom=DOMAINS.find(d=>d.id===q.dom);
+     const pr=i<2?{c:'p-crit',t:'PRIORIDAD CRÍTICA'}:i<4?{c:'p-high',t:'PRIORIDAD ALTA'}:{c:'p-med',t:'PRIORIDAD MEDIA'};
+     const el=document.createElement('div');el.className='card rec '+pr.c;
+     el.innerHTML=`<div class="rec-head"><span class="rtag">${pr.t}</span><h3>${rec.t}</h3><span class="score">${dom.name} · nivel ${v}/5</span></div>
+       <p class="rbody">${this.recIntro(q,dom,v)}</p>
+       <ul><li><span class="chk">✓</span><span>${rec.a}</span><span class="ctrl">${rec.ctrl}</span></li></ul>`;
+     list.appendChild(el);
+   });
+   if(!top.length){list.innerHTML=`<div class="card" style="padding:30px;text-align:center"><h3 style="color:var(--ok);font-size:18px">¡Excelente! 🎉</h3><p style="color:var(--ink-soft);margin-top:8px">No se detectaron brechas críticas. Mantén tus controles y reevalúa cada trimestre.</p></div>`;}
+ },
+ recIntro(q,dom,v){
+   const map={
+     B8:'Las copias de respaldo son tu última línea de defensa ante un ataque de ransomware. Hoy tu nivel es bajo y un incidente podría causar pérdida irreversible de información.',
+     B10:'La mayoría de los ataques exitosos empiezan por un error humano. Capacitar a tu equipo es la inversión de mayor retorno en seguridad.',
+     B13:'Sin un procedimiento de respuesta, un incidente toma mucho más tiempo en contenerse y su costo se multiplica.',
+     B15:'Un plan de continuidad permite que tu negocio siga operando incluso después de un incidente grave.',
+     B1:'Una política formal ordena las prioridades y compromete a la dirección con la seguridad.',
+     B7:'Las contraseñas débiles y la ausencia de doble factor son la puerta de entrada más común para los atacantes.',
+   };
+   return map[q.id]||`Este punto del dominio «${dom.name}» presenta un nivel ${v}/5, por debajo de lo recomendado para una empresa de tu sector. Atenderlo reducirá tu exposición al riesgo.`;
+ },
+
+ /* -------- TRAINING -------- */
+ renderTrain(){
+   const recommended=new Set();
+   if(this.result){const low=DOMAINS.filter(d=>this.result.domScores[d.id]<55).map(d=>d.id);CAPSULES.forEach(c=>{if(low.includes(c.dom))recommended.add(c.id);});}
+   const total=CAPSULES.length,done=this.done.size,pct=Math.round(done/total*100);
+   document.getElementById('train-stat').innerHTML=`${this.ringSVG(pct)}<div class="ts-txt"><b>${done} de ${total} cápsulas completadas</b><span>${pct}% de tu ruta de aprendizaje. Cada cápsula aporta a tu nivel de madurez.</span></div>`;
+   const caps=document.getElementById('caps');caps.innerHTML='';
+   CAPSULES.forEach(c=>{
+     const dom=DOMAINS.find(d=>d.id===c.dom);const isDone=this.done.has(c.id);const rec=recommended.has(c.id)&&!isDone;
+     const el=document.createElement('div');el.className='card cap'+(isDone?' done':'');
+     el.innerHTML=`<div class="cap-top"><div class="cap-ico" style="background:${dom.color}">${c.dom}</div>${rec?'<span style="font-size:10.5px;font-weight:600;color:var(--warn);background:var(--warn-soft);padding:3px 8px;border-radius:6px">Recomendada</span>':''}<span class="cap-min">${c.min} min</span></div>
+       <h3>${c.title}</h3><p>${c.desc}</p>
+       ${isDone?'<div class="done-pill">✓ Completada</div>':`<button class="btn btn-primary" onclick="App.complete('${c.id}')">▶ Comenzar cápsula</button>`}`;
+     caps.appendChild(el);
+   });
+ },
+ complete(id){this.done.add(id);this.renderTrain();},
+ ringSVG(pct){const R=26,C=2*Math.PI*R,off=C-(pct/100)*C;return `<svg class="ring" width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="${R}" fill="none" stroke="#EAEFF7" stroke-width="7"/><circle cx="32" cy="32" r="${R}" fill="none" stroke="#0E9E94" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}" transform="rotate(-90 32 32)" style="transition:stroke-dashoffset .7s"/><text x="32" y="36" text-anchor="middle" font-family="IBM Plex Mono" font-weight="600" font-size="14" fill="#0E1B30">${pct}%</text></svg>`;},
+
+ /* -------- REPORT -------- */
+ renderReport(){
+   const r=this.result;if(!r){document.getElementById('report-doc').innerHTML='<p>Completa primero el diagnóstico.</p>';return;}
+   const d=r.date.toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric'});
+   const bench=SECTOR_BENCH[this.user.sector]||38;
+   let domRows=DOMAINS.map(dm=>`<tr><td><b>${dm.id}</b> ${dm.name}</td><td class="mono">${r.domScores[dm.id]}/100</td><td>${this.levelFor(r.domScores[dm.id]).name}</td></tr>`).join('');
+   const gaps=QUESTIONS.filter(q=>(this.answers[q.id]||5)<=3).sort((a,b)=>(this.answers[a.id]||0)-(this.answers[b.id]||0)).slice(0,5);
+   let recRows=gaps.map((q,i)=>{const rc=RECS[q.id];return `<tr><td class="mono">${i+1}</td><td><b>${rc.t}</b><br><span style="color:var(--ink-soft);font-size:12px">${rc.a}</span></td><td class="mono">${rc.ctrl}</td></tr>`;}).join('');
+   document.getElementById('report-doc').innerHTML=`
+     <div class="rd-head">
+       <div><div class="brand"><svg width="22" height="25" viewBox="0 0 26 29"><path d="M13 1L24 6v10c0 7-4.5 10.5-11 12.5C6.5 26.5 2 23 2 16V6z" fill="#16315E"/><path d="M8.5 14.5l3 3 6-6.5" stroke="#5fe6d3" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg> CiberPYME <span class="bog" style="color:var(--teal)">BOG</span></div><div style="font-size:13px;color:var(--ink-soft);margin-top:4px">Informe ejecutivo de madurez en ciberseguridad</div></div>
+       <div class="meta">Fecha: ${d}<br>Marco: NIST CSF 2.0<br>ID: CPB-${Math.floor(Math.random()*9000+1000)}</div>
+     </div>
+     <div class="rd-section"><h3>Datos de la empresa</h3><div class="rd-kv">
+       <span class="k">Empresa</span><span class="v">${this.user.name}</span>
+       <span class="k">Sector</span><span class="v">${this.user.sector}</span>
+       <span class="k">Tamaño</span><span class="v">${this.user.size} empleados</span>
+       <span class="k">Localidad</span><span class="v">${this.user.loc}</span>
+     </div></div>
+     <div class="rd-section"><h3>Resultado global</h3>
+       <div style="display:flex;align-items:center;gap:22px;background:var(--surface-2);border-radius:12px;padding:18px 22px">
+         <div style="font-family:Sora;font-size:46px;font-weight:800;color:${r.level.color}">${r.global}<span style="font-size:18px;color:var(--ink-faint)">/100</span></div>
+         <div><div style="font-family:Sora;font-weight:700;font-size:19px;color:${r.level.color}">Nivel ${r.level.name}</div><div style="font-size:13px;color:var(--ink-soft);max-width:440px;margin-top:3px">${r.level.cap}</div></div>
+       </div>
+       <div style="font-size:13px;color:var(--ink-soft);margin-top:12px">Promedio del sector «${this.user.sector}»: <b>${bench}/100</b>. ${r.global>=bench?`La empresa está ${r.global-bench} puntos por encima del promedio sectorial.`:`La empresa está ${bench-r.global} puntos por debajo del promedio sectorial.`}</div>
+     </div>
+     <div class="rd-section"><h3>Madurez por dominio</h3><table class="rd-table"><thead><tr><th>Dominio NIST CSF 2.0</th><th>Puntaje</th><th>Nivel</th></tr></thead><tbody>${domRows}</tbody></table></div>
+     <div class="rd-section"><h3>Cumplimiento normativo</h3><table class="rd-table"><thead><tr><th>Normativa</th><th>Cumplimiento</th><th>Estado</th></tr></thead><tbody>${r.compliance.map(c=>`<tr><td>${c.name}</td><td class="mono">${c.pct}%</td><td>${c.label}</td></tr>`).join('')}</tbody></table></div>
+     <div class="rd-section"><h3>Plan de acción prioritario</h3><table class="rd-table"><thead><tr><th>#</th><th>Acción recomendada</th><th>Control</th></tr></thead><tbody>${recRows||'<tr><td colspan="3">Sin brechas críticas detectadas.</td></tr>'}</tbody></table></div>
+   `;
+ },
+};
+</script>
+</body>
+</html>
